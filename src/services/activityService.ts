@@ -35,12 +35,14 @@ export class ActivityService {
     if (!message.fromMe) await this.groups.touchLastMessage(message.chatId, message.timestamp);
   }
 
-  lastHumanMessageAt = this.repo.lastHumanMessageAt.bind(this.repo);
-  recent = this.repo.recent.bind(this.repo);
-  between = this.repo.between.bind(this.repo);
-  countSince = this.repo.countSince.bind(this.repo);
-  topContributors = this.repo.topContributors.bind(this.repo);
-  dailyCounts = this.repo.dailyCounts.bind(this.repo);
+  lastHumanMessageAt: ActivityRepository['lastHumanMessageAt'] = (...args) =>
+    this.repo.lastHumanMessageAt(...args);
+  recent: ActivityRepository['recent'] = (...args) => this.repo.recent(...args);
+  between: ActivityRepository['between'] = (...args) => this.repo.between(...args);
+  countSince: ActivityRepository['countSince'] = (...args) => this.repo.countSince(...args);
+  topContributors: ActivityRepository['topContributors'] = (...args) =>
+    this.repo.topContributors(...args);
+  dailyCounts: ActivityRepository['dailyCounts'] = (...args) => this.repo.dailyCounts(...args);
 
   /** Hours since the last human message; Infinity when the group never spoke. */
   async idleHours(groupId: number): Promise<number> {

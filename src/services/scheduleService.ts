@@ -104,10 +104,10 @@ export class ScheduleService {
     return this.update(id, { enabled });
   }
 
-  claimRun = this.repo.claimRun.bind(this.repo);
-  completeRun = this.repo.completeRun.bind(this.repo);
-  markRun = this.repo.markRun.bind(this.repo);
-  pruneRuns = this.repo.pruneRuns.bind(this.repo);
+  claimRun: ScheduleRepository['claimRun'] = (...args) => this.repo.claimRun(...args);
+  completeRun: ScheduleRepository['completeRun'] = (...args) => this.repo.completeRun(...args);
+  markRun: ScheduleRepository['markRun'] = (...args) => this.repo.markRun(...args);
+  pruneRuns: ScheduleRepository['pruneRuns'] = (...args) => this.repo.pruneRuns(...args);
   describe = describeCron;
 }
 

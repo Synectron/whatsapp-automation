@@ -55,9 +55,9 @@ export class SettingsService {
     return this.get();
   }
 
-  raw = this.repo.asObject.bind(this.repo);
-  setKey = this.repo.set.bind(this.repo);
-  getKey = this.repo.get.bind(this.repo);
+  raw: SettingsRepository['asObject'] = (...args) => this.repo.asObject(...args);
+  setKey: SettingsRepository['set'] = (...args) => this.repo.set(...args);
+  getKey: SettingsRepository['get'] = (...args) => this.repo.get(...args);
 }
 
 export const settingsService = new SettingsService();

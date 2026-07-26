@@ -78,9 +78,9 @@ export class AuditService {
     return removed;
   }
 
-  query = this.repo.query.bind(this.repo);
-  distinctEvents = this.repo.distinctEvents.bind(this.repo);
-  clear = this.repo.clear.bind(this.repo);
+  query: LogRepository['query'] = (...args) => this.repo.query(...args);
+  distinctEvents: LogRepository['distinctEvents'] = (...args) => this.repo.distinctEvents(...args);
+  clear: LogRepository['clear'] = (...args) => this.repo.clear(...args);
 }
 
 export const audit = new AuditService();

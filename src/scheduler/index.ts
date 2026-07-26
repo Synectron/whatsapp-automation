@@ -115,7 +115,9 @@ export class SchedulerService {
 
     const schedules = await this.deps.schedules.listActive();
     for (const schedule of schedules) {
-      this.schedule(`schedule:${schedule.id}`, schedule.cron, () => this.fire(schedule.id));
+      this.schedule(`schedule:${schedule.id}`, schedule.cron, async () => {
+        await this.fire(schedule.id);
+      });
     }
     log.info('Schedules reloaded', { count: schedules.length });
     return schedules.length;

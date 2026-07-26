@@ -11,8 +11,8 @@
     <label class="block text-sm">
       <span class="font-medium">Group</span>
       <select name="groupId" required class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <% groups.forEach(function (g) { %>
-          <option value="<%= g.id %>"><%= g.name %><%= g.enabled ? '' : ' (disabled)' %></option>
+        <% enabledGroups.forEach(function (g) { %>
+          <option value="<%= g.id %>"><%= g.name %></option>
         <% }); %>
       </select>
     </label>

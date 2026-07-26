@@ -113,9 +113,10 @@ export function buildDashboardRouter(container: Container): Router {
   router.get(
     '/schedules',
     asyncHandler(async (_req, res) => {
-      const [schedules, groups, tpl] = await Promise.all([
+      const [schedules, groups, enabledGroups, tpl] = await Promise.all([
         container.schedules.list(),
         container.groups.list(),
+        container.groups.list(true),
         templates.list(),
       ]);
       res.render('schedules', {
@@ -123,6 +124,7 @@ export function buildDashboardRouter(container: Container): Router {
         active: 'schedules',
         schedules: schedules.map((s) => ({ ...s, description: describeCron(s.cron) })),
         groups,
+        enabledGroups,
         templates: tpl,
         timezone: getTimezone(),
         formatLocal,
@@ -205,7 +207,7 @@ export function buildDashboardRouter(container: Container): Router {
       res.render('send', {
         title: 'Send message',
         active: 'send',
-        groups: await container.groups.list(),
+        groups: await container.groups.list(true),
         templates: await templates.list(),
         queue: await outbox.list(undefined, 25),
         formatLocal,

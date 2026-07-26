@@ -7,10 +7,12 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
-import dotenv from 'dotenv';
+import dotenvx from '@dotenvx/dotenvx';
 import { z } from 'zod';
 
-dotenv.config();
+// dotenvx transparently decrypts the encrypted .env using the private key
+// from .env.keys (or the DOTENV_PRIVATE_KEY environment variable in prod).
+dotenvx.config({ quiet: true });
 
 /** Coerce common truthy strings to a boolean. */
 const bool = (def: boolean) =>

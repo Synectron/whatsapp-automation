@@ -36,8 +36,13 @@ const TEMPLATES: Array<{ name: string; category: string; body: string }> = [
     name: 'Mockup review follow-up',
     category: 'reminder',
     body:
-      'Hi 👋 Just checking in — did you get a chance to view the website mockup?\n' +
-      'Any help needed to make a decision? Happy to assist 😊',
+      'Hi 👋✨\n\n' +
+      'Hope you had a chance to explore the website mockup with the login we shared yesterday 🖥️\n\n' +
+      '• Any first impressions or feedback? 💭\n' +
+      '• Is anything unclear or missing? 🔍\n' +
+      '• Any help needed to make a decision? ✅\n\n' +
+      "Happy to walk you through it on a quick call if that's easier 😊\n\n" +
+      '— Softcoe Bot 🤖',
   },
   {
     name: 'Meeting reminder (30 min)',

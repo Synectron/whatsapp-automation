@@ -115,7 +115,7 @@ export const envSchema = z.object({
   AI_PROVIDER: z.enum(['gemini', 'openai', 'none']).default('gemini'),
   AI_ENABLED: bool(false),
   GEMINI_API_KEY: optStr(),
-  GEMINI_MODEL: str('gemini-1.5-flash'),
+  GEMINI_MODEL: str('gemini-flash-latest'),
   OPENAI_API_KEY: optStr(),
   OPENAI_MODEL: str('gpt-4o-mini'),
   OPENAI_BASE_URL: optStr(),

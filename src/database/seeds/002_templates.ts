@@ -33,6 +33,13 @@ const TEMPLATES: Array<{ name: string; category: string; body: string }> = [
       '• Need help before next week?',
   },
   {
+    name: 'Mockup review follow-up',
+    category: 'reminder',
+    body:
+      'Hi 👋 Just checking in — did you get a chance to view the website mockup?\n' +
+      'Any help needed to make a decision? Happy to assist 😊',
+  },
+  {
     name: 'Meeting reminder (30 min)',
     category: 'meeting',
     body: 'Reminder ⏰\n\n{{meeting}} starts in {{minutes}} minutes.\nPlease join on time.',

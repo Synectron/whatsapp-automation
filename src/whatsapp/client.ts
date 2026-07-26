@@ -257,8 +257,8 @@ export class WhatsAppClient implements WhatsAppGateway {
       throw new ServiceUnavailableError('WhatsApp browser page is not available');
     }
     const groups = (await page.evaluate(() => {
-      const store = (globalThis as unknown as {
-        Store: {
+      const collections = (globalThis as unknown as {
+        require: (module: string) => {
           Chat: {
             getModelsArray: () => Array<{
               isGroup?: boolean;
@@ -278,8 +278,8 @@ export class WhatsAppClient implements WhatsAppGateway {
             }>;
           };
         };
-      }).Store;
-      return store.Chat.getModelsArray()
+      }).require('WAWebCollections');
+      return collections.Chat.getModelsArray()
         .filter((chat) => chat.isGroup || chat.id.server === 'g.us')
         .map((chat) => ({
           whatsappId: chat.id._serialized,

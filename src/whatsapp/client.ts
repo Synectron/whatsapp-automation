@@ -120,8 +120,11 @@ export class WhatsAppClient implements WhatsAppGateway {
     const handleMessage = (message: Message) => {
       void (async () => {
         try {
-          const chat = await message.getChat();
-          if (!chat.isGroup) return;
+          // message.getChat() (like getChats) is broken on current WhatsApp
+          // Web builds, so derive everything from the raw message fields:
+          // for inbound messages `from` is the chat id, for our own `to` is.
+          const chatId = message.fromMe ? message.to : message.from;
+          if (!chatId || !isGroupId(chatId)) return;
           let authorName = '';
           try {
             const contact = await message.getContact();
@@ -131,8 +134,8 @@ export class WhatsAppClient implements WhatsAppGateway {
           }
           eventBus.emit('wa:message', {
             messageId: message.id?._serialized ?? '',
-            chatId: chat.id._serialized,
-            chatName: chat.name,
+            chatId,
+            chatName: '',
             authorId: message.author ?? message.from,
             authorName,
             body: message.body ?? '',

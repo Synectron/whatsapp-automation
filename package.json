@@ -10,7 +10,7 @@
     "build": "rimraf dist && tsc -p tsconfig.build.json && npm run copy:assets",
     "copy:assets": "node scripts/copy-assets.mjs",
     "start": "dotenvx run -- node dist/server.js",
-    "dev": "nodemon --watch src --ext ts,ejs --exec \"dotenvx run -- ts-node -r tsconfig-paths/register src/server.ts\"",
+    "dev": "nodemon --watch src --ext ts,ejs --exec \"node scripts/kill-stale.mjs && dotenvx run -- ts-node -r tsconfig-paths/register src/server.ts\"",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"{src,tests}/**/*.ts\"",
     "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix",

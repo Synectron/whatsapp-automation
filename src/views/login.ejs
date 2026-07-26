@@ -1,0 +1,33 @@
+<%- include('partials/head') %>
+<div class="flex min-h-full items-center justify-center px-4 py-16">
+  <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div class="mb-6 text-center">
+      <div class="text-3xl">💬</div>
+      <h1 class="mt-2 text-lg font-semibold">WhatsApp Group Assistant</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Sign in to manage reminders</p>
+    </div>
+
+    <% if (error) { %>
+      <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200"><%= error %></div>
+    <% } %>
+
+    <form method="post" action="/login" class="space-y-4">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <input type="hidden" name="next" value="<%= next %>" />
+      <div>
+        <label class="block text-sm font-medium" for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required
+          class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-800" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium" for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required
+          class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-800" />
+      </div>
+      <button class="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Sign in</button>
+    </form>
+  </div>
+</div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<%- include('partials/head') %>
+<div class="mx-auto max-w-3xl px-4 py-10">
+
+  <div class="mb-8 text-center">
+    <div class="text-3xl">💬</div>
+    <h1 class="mt-2 text-2xl font-semibold">Set up your Group Assistant</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">A few questions and you're running.</p>
+  </div>
+
+  <!-- Progress -->
+  <ol class="mb-8 flex items-center justify-between gap-2">
+    <% steps.forEach(function (s, i) { %>
+      <li class="flex flex-1 items-center gap-2">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold <%=
+          s.number < step ? 'bg-emerald-600 text-white'
+          : s.number === step ? 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'
+          : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400' %>">
+          <%= s.number < step ? '✓' : s.number %>
+        </span>
+        <span class="hidden text-xs font-medium sm:inline <%= s.number === step ? '' : 'text-slate-500 dark:text-slate-400' %>"><%= s.title %></span>
+        <% if (i < steps.length - 1) { %><span class="h-px flex-1 bg-slate-200 dark:bg-slate-800"></span><% } %>
+      </li>
+    <% }); %>
+  </ol>
+
+  <% if (error) { %>
+    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200"><%= error %></div>
+  <% } %>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+    <% if (step === 1) { %>
+      <h2 class="text-lg font-semibold">Create the administrator account</h2>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">This is how you'll sign in to the dashboard. The password is hashed with bcrypt before it is stored.</p>
+      <form method="post" action="/setup/account" class="mt-5 space-y-4">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <label class="block text-sm">
+          <span class="font-medium">Username</span>
+          <input name="username" required minlength="3" autocomplete="username" value="admin"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800" />
+        </label>
+        <label class="block text-sm">
+          <span class="font-medium">Password</span>
+          <input name="password" type="password" required minlength="10" autocomplete="new-password"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800" />
+          <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">At least 10 characters.</span>
+        </label>
+        <label class="block text-sm">
+          <span class="font-medium">Confirm password</span>
+          <input name="confirmPassword" type="password" required minlength="10" autocomplete="new-password"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800" />
+        </label>
+        <button class="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Continue</button>
+      </form>
+
+    <% } else if (step === 2) { %>
+      <h2 class="text-lg font-semibold">Timezone and formatting</h2>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Every cron schedule is evaluated in this timezone, so a 09:30 reminder means 09:30 where your team is.</p>
+      <form method="post" action="/setup/localization" class="mt-5 space-y-4">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <label class="block text-sm">
+          <span class="font-medium">Timezone</span>
+          <select name="timezone" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+            <% timezones.forEach(function (tz) { %>
+              <option value="<%= tz %>" <%= currentTimezone === tz ? 'selected' : '' %>><%= tz %></option>
+            <% }); %>
+          </select>
+        </label>
+        <label class="block text-sm">
+          <span class="font-medium">Locale</span>
+          <input name="locale" value="<%= currentLocale %>" placeholder="en-IN"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800" />
+        </label>
+        <label class="block text-sm">
+          <span class="font-medium">Signature <span class="font-normal text-slate-500">(optional)</span></span>
+          <input name="signature" placeholder="— Team bot"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800" />
+          <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">Appended to every message the assistant sends, so members know it's automated.</span>
+        </label>
+        <button class="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Continue</button>
+      </form>
+
+    <% } else if (step === 3) { %>
+      <h2 class="text-lg font-semibold">Link your WhatsApp account</h2>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">On your phone: WhatsApp → <strong>Linked devices</strong> → <strong>Link a device</strong>, then scan below. This page refreshes itself.</p>
+
+      <div class="mt-5 flex flex-col items-center gap-4 rounded-xl border border-dashed border-slate-300 p-6 dark:border-slate-700">
+        <% if (connected) { %>
+          <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">✅ Connected</p>
+          <form method="post" action="/setup/connect/sync">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Find my groups →</button>
+          </form>
+        <% } else if (qr) { %>
+          <img src="<%= qr %>" alt="WhatsApp QR code" class="h-56 w-56 rounded-lg bg-white p-2" />
+          <p class="text-xs text-slate-500 dark:text-slate-400">Status: <%= connectionStatus %></p>
+        <% } else { %>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Waiting for a QR code… (status: <%= connectionStatus %>)</p>
+          <form method="post" action="/setup/connect/restart">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Restart the client</button>
+          </form>
+        <% } %>
+      </div>
+
+      <p class="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
+        <a href="/setup?step=4" class="underline">Skip for now</a> — you can link WhatsApp later from the dashboard.
+      </p>
+
+    <% } else { %>
+      <h2 class="text-lg font-semibold">Choose your groups</h2>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">The assistant only posts in groups you tick here. You can change this at any time.</p>
+
+      <form method="post" action="/setup/groups" class="mt-5 space-y-5">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+        <% if (!groups.length) { %>
+          <p class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            No groups found yet. Link WhatsApp on the previous step, then sync — or finish now and sync later.
+          </p>
+        <% } else { %>
+          <div class="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+            <% groups.forEach(function (g) { %>
+              <label class="flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+                <input type="checkbox" name="groupIds" value="<%= g.id %>" <%= g.enabled ? 'checked' : '' %> class="rounded" />
+                <span class="flex-1 truncate"><%= g.name %></span>
+                <span class="text-xs text-slate-400"><%= g.participantCount === null ? '' : g.participantCount + ' members' %></span>
+              </label>
+            <% }); %>
+          </div>
+        <% } %>
+
+        <div>
+          <p class="text-sm font-medium">Create starter reminders <span class="font-normal text-slate-500">(optional)</span></p>
+          <div class="mt-2 space-y-2">
+            <% starters.forEach(function (s) { %>
+              <label class="flex items-start gap-3 text-sm">
+                <input type="checkbox" name="starters" value="<%= s.key %>" class="mt-0.5 rounded" />
+                <span><%= s.label %></span>
+              </label>
+            <% }); %>
+          </div>
+          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Added to every group you ticked above. Edit or delete them later on the Schedules page.</p>
+        </div>
+
+        <button class="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Finish setup</button>
+      </form>
+    <% } %>
+
+  </section>
+
+  <p class="mt-6 text-center text-xs text-slate-400">
+    <% if (step > 1) { %><a href="/setup?step=<%= step - 1 %>" class="underline">← Back</a> · <% } %>
+    Timezone <%= currentTimezone %>
+  </p>
+</div>
+
+<% if (step === 3 && !connected) { %>
+<script>
+  // Poll for the QR / connected state and refresh when it changes.
+  var hadQr = <%= qr ? 'true' : 'false' %>;
+  setInterval(function () {
+    fetch('/setup/status', { headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (s) {
+        if (!s) return;
+        if (s.connected || s.qrAvailable !== hadQr) window.location.reload();
+      })
+      .catch(function () {});
+  }, 4000);
+</script>
+<% } %>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

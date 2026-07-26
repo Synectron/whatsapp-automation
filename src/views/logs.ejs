@@ -1,0 +1,65 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-xl font-semibold">Logs</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400"><%= total %> entries</p>
+  </div>
+  <form method="post" action="/logs/clear" onsubmit="return confirm('Delete all log entries?')">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <button class="rounded-lg border border-red-300 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">Clear logs</button>
+  </form>
+</div>
+
+<form method="get" action="/logs" class="mb-4 flex flex-wrap gap-2">
+  <select name="level" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+    <option value="">All levels</option>
+    <% ['debug','info','warn','error'].forEach(function (l) { %>
+      <option value="<%= l %>" <%= level === l ? 'selected' : '' %>><%= l %></option>
+    <% }); %>
+  </select>
+  <select name="event" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+    <option value="">All events</option>
+    <% events.forEach(function (e) { %>
+      <option value="<%= e %>" <%= event === e ? 'selected' : '' %>><%= e %></option>
+    <% }); %>
+  </select>
+  <input type="number" name="limit" value="<%= limit %>" min="1" max="500" class="w-24 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
+  <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Filter</button>
+</form>
+
+<div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
+      <tr><th class="px-4 py-3">Time</th><th class="px-4 py-3">Level</th><th class="px-4 py-3">Event</th><th class="px-4 py-3">Details</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+      <% if (!logs.length) { %><tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">No log entries match this filter.</td></tr><% } %>
+      <% logs.forEach(function (l) { %>
+        <tr>
+          <td class="whitespace-nowrap px-4 py-2 text-slate-500 dark:text-slate-400"><%= formatLocal(l.timestamp) %></td>
+          <td class="px-4 py-2">
+            <span class="rounded px-2 py-0.5 text-xs <%=
+              l.level === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
+              l.level === 'warn' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+              'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' %>"><%= l.level %></span>
+          </td>
+          <td class="whitespace-nowrap px-4 py-2 font-medium"><%= l.event %></td>
+          <td class="px-4 py-2 text-slate-500 dark:text-slate-400"><span class="break-all"><%= l.details || '—' %></span></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-4 flex justify-between text-sm">
+  <% if (offset > 0) { %>
+    <a class="text-emerald-600 hover:underline" href="/logs?limit=<%= limit %>&offset=<%= Math.max(offset - limit, 0) %>&level=<%= level %>&event=<%= event %>">← Newer</a>
+  <% } else { %><span></span><% } %>
+  <% if (offset + limit < total) { %>
+    <a class="text-emerald-600 hover:underline" href="/logs?limit=<%= limit %>&offset=<%= offset + limit %>&level=<%= level %>&event=<%= event %>">Older →</a>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

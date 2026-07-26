@@ -1,0 +1,58 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-xl font-semibold">Groups</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">New groups start disabled — enable the ones the assistant may post in.</p>
+  </div>
+  <form method="post" action="/groups/sync">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <button <%= connected ? '' : 'disabled' %>
+      class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+      Sync from WhatsApp
+    </button>
+  </form>
+</div>
+
+<div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
+      <tr>
+        <th class="px-4 py-3">Group</th>
+        <th class="px-4 py-3">WhatsApp ID</th>
+        <th class="px-4 py-3">Members</th>
+        <th class="px-4 py-3">Last message</th>
+        <th class="px-4 py-3">Last reminder</th>
+        <th class="px-4 py-3 text-right">Reminders</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+      <% if (!groups.length) { %>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">No groups yet. Connect WhatsApp, then press “Sync from WhatsApp”.</td></tr>
+      <% } %>
+      <% groups.forEach(function (g) { %>
+        <tr>
+          <td class="px-4 py-3 font-medium"><%= g.name %></td>
+          <td class="px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400"><%= g.whatsappId %></td>
+          <td class="px-4 py-3"><%= g.participantCount === null ? '—' : g.participantCount %></td>
+          <td class="px-4 py-3 text-slate-500 dark:text-slate-400"><%= g.lastMessageAt ? formatLocal(g.lastMessageAt) : '—' %></td>
+          <td class="px-4 py-3 text-slate-500 dark:text-slate-400"><%= g.lastReminderAt ? formatLocal(g.lastReminderAt) : '—' %></td>
+          <td class="px-4 py-3 text-right">
+            <form method="post" action="/groups/<%= g.id %>/toggle" class="inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <input type="hidden" name="enabled" value="<%= g.enabled ? 'false' : 'true' %>" />
+              <button class="rounded-full px-3 py-1 text-xs font-semibold <%= g.enabled
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' %>">
+                <%= g.enabled ? 'Enabled' : 'Disabled' %>
+              </button>
+            </form>
+          </td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('partials/foot') %>

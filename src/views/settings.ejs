@@ -1,0 +1,109 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<h1 class="mb-4 text-xl font-semibold">Settings</h1>
+
+<form method="post" action="/settings" class="grid gap-4 lg:grid-cols-2">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">AI</h2>
+    <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">
+      Active provider: <strong><%= ai.provider %></strong> <%= ai.ready ? '· credentials detected' : '· no API key configured (rule-based replies will be used)' %>
+    </p>
+    <div class="space-y-3 text-sm">
+      <label class="flex items-center gap-2"><input type="checkbox" name="aiEnabled" <%= settings.aiEnabled ? 'checked' : '' %> class="rounded" /> Enable AI generation</label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="aiAutoReply" <%= settings.aiAutoReply ? 'checked' : '' %> class="rounded" /> Follow up on member replies</label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="aiWeeklySummary" <%= settings.aiWeeklySummary ? 'checked' : '' %> class="rounded" /> Post AI weekly summaries</label>
+      <label class="block">
+        <span class="font-medium">Provider</span>
+        <select name="aiProvider" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+          <% ['gemini','openai','none'].forEach(function (p) { %>
+            <option value="<%= p %>" <%= settings.aiProvider === p ? 'selected' : '' %>><%= p %></option>
+          <% }); %>
+        </select>
+      </label>
+      <label class="block">
+        <span class="font-medium">Persona / system prompt</span>
+        <textarea name="aiPersona" rows="5" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800"><%= settings.aiPersona %></textarea>
+      </label>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Behaviour</h2>
+    <div class="space-y-3 text-sm">
+      <label class="flex items-center gap-2"><input type="checkbox" name="schedulerEnabled" <%= settings.schedulerEnabled ? 'checked' : '' %> class="rounded" /> Scheduled reminders active</label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="motivationEnabled" <%= settings.motivationEnabled ? 'checked' : '' %> class="rounded" /> Daily motivation message</label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="inactivityEnabled" <%= settings.inactivityEnabled ? 'checked' : '' %> class="rounded" /> Inactivity nudges</label>
+      <label class="block">
+        <span class="font-medium">Inactivity threshold (hours)</span>
+        <input type="number" min="1" max="336" name="inactivityHours" value="<%= settings.inactivityHours %>" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800" />
+      </label>
+      <label class="block">
+        <span class="font-medium">Inactivity message</span>
+        <textarea name="inactivityMessage" rows="4" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800"><%= settings.inactivityMessage %></textarea>
+      </label>
+      <label class="block">
+        <span class="font-medium">Signature appended to every message</span>
+        <input name="signature" value="<%= settings.signature %>" placeholder="— Team bot" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800" />
+      </label>
+    </div>
+  </section>
+
+  <div class="lg:col-span-2">
+    <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Save settings</button>
+  </div>
+</form>
+
+<div class="mt-4 grid gap-4 lg:grid-cols-2">
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Holiday calendar (<%= timezone %>)</h2>
+    <form method="post" action="/settings/holidays" class="mb-3 flex flex-wrap gap-2">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <input type="date" name="date" required class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
+      <input name="name" required placeholder="Holiday name" class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
+      <button class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Add</button>
+    </form>
+    <ul class="max-h-64 space-y-1 overflow-y-auto text-sm">
+      <% holidays.forEach(function (h) { %>
+        <li class="flex items-center justify-between gap-2 border-b border-slate-100 py-1 dark:border-slate-800">
+          <span><span class="font-mono text-xs text-slate-400"><%= h.date %></span> <%= h.name %></span>
+          <form method="post" action="/settings/holidays/<%= h.id %>/delete">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button class="text-xs text-red-600 hover:underline">remove</button>
+          </form>
+        </li>
+      <% }); %>
+      <% if (!holidays.length) { %><li class="text-slate-500 dark:text-slate-400">No holidays configured.</li><% } %>
+    </ul>
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Backup &amp; restore</h2>
+    <form method="post" action="/settings/rerun-setup" class="mb-4" onsubmit="return confirm('Re-run the first-boot setup wizard?')">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <button class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Re-run setup wizard</button>
+    </form>
+
+    <form method="post" action="/settings/backup" class="mb-4">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <button class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Create backup now</button>
+    </form>
+    <ul class="max-h-64 space-y-1 overflow-y-auto text-sm">
+      <% backups.forEach(function (b) { %>
+        <li class="flex items-center justify-between gap-2 border-b border-slate-100 py-1 dark:border-slate-800">
+          <span class="truncate"><%= b.name %> <span class="text-xs text-slate-400"><%= (b.size / 1024).toFixed(1) %> KB</span></span>
+          <form method="post" action="/settings/restore" onsubmit="return confirm('Restore this backup? Current data will be replaced.')">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <input type="hidden" name="file" value="<%= b.name %>" />
+            <button class="text-xs text-amber-600 hover:underline">restore</button>
+          </form>
+        </li>
+      <% }); %>
+      <% if (!backups.length) { %><li class="text-slate-500 dark:text-slate-400">No backups yet.</li><% } %>
+    </ul>
+  </section>
+</div>
+
+<%- include('partials/foot') %>

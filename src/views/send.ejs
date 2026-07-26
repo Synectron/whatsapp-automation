@@ -1,0 +1,75 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<h1 class="mb-4 text-xl font-semibold">Send a message</h1>
+
+<div class="grid gap-4 lg:grid-cols-2">
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <form method="post" action="/send" class="space-y-4">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <label class="block text-sm">
+        <span class="font-medium">Group</span>
+        <select name="groupId" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+          <% groups.forEach(function (g) { %>
+            <option value="<%= g.id %>"><%= g.name %><%= g.enabled ? '' : ' (disabled)' %></option>
+          <% }); %>
+        </select>
+      </label>
+      <label class="block text-sm">
+        <span class="font-medium">Message</span>
+        <textarea name="message" id="send-message" rows="6" required
+          class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"></textarea>
+      </label>
+      <div>
+        <p class="mb-2 text-xs font-medium uppercase text-slate-400">Templates</p>
+        <div class="flex flex-wrap gap-2">
+          <% templates.forEach(function (t) { %>
+            <button type="button" data-template="<%= encodeURIComponent(t.body) %>"
+              class="rounded-full border border-slate-300 px-3 py-1 text-xs hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"><%= t.name %></button>
+          <% }); %>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-4 text-sm">
+        <label class="flex items-center gap-2"><input type="checkbox" name="mentionAll" class="rounded" /> Mention everyone</label>
+        <label class="flex items-center gap-2"><input type="checkbox" name="broadcast" class="rounded" /> Broadcast to all enabled groups</label>
+      </div>
+      <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Queue message</button>
+    </form>
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Outgoing queue</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="text-xs uppercase text-slate-400">
+          <tr><th class="py-2 pr-3">#</th><th class="py-2 pr-3">Status</th><th class="py-2 pr-3">Preview</th><th class="py-2"></th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <% if (!queue.length) { %><tr><td colspan="4" class="py-6 text-center text-slate-500 dark:text-slate-400">Queue is empty.</td></tr><% } %>
+          <% queue.forEach(function (m) { %>
+            <tr>
+              <td class="py-2 pr-3 text-slate-400"><%= m.id %></td>
+              <td class="py-2 pr-3">
+                <span class="rounded px-2 py-0.5 text-xs <%=
+                  m.status === 'sent' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' :
+                  m.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
+                  'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' %>"><%= m.status %></span>
+              </td>
+              <td class="py-2 pr-3"><span class="line-clamp-1 break-all text-slate-500 dark:text-slate-400"><%= m.body.slice(0, 60) %></span></td>
+              <td class="py-2 text-right">
+                <% if (m.status === 'failed') { %>
+                  <form method="post" action="/send/<%= m.id %>/retry" class="inline">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                    <button class="text-xs text-emerald-600 hover:underline">Retry</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<%- include('partials/foot') %>

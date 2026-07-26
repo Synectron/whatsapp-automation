@@ -1,0 +1,60 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-xl font-semibold">Group analytics</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Last <%= days %> days</p>
+  </div>
+  <div class="flex gap-2">
+    <form method="get" action="/analytics" class="flex gap-2">
+      <select name="days" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+        <% [7, 14, 30, 90].forEach(function (d) { %>
+          <option value="<%= d %>" <%= days === d ? 'selected' : '' %>><%= d %> days</option>
+        <% }); %>
+      </select>
+      <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Apply</button>
+    </form>
+    <a href="/api/analytics/export?days=<%= days %>" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Export CSV</a>
+  </div>
+</div>
+
+<div class="grid gap-4 md:grid-cols-2">
+  <% if (!stats.length) { %>
+    <p class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 md:col-span-2 dark:border-slate-700 dark:text-slate-400">No groups to analyse yet.</p>
+  <% } %>
+  <% stats.forEach(function (s) { %>
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <h2 class="font-semibold"><%= s.name %></h2>
+      <dl class="mt-3 grid grid-cols-4 gap-2 text-sm">
+        <div><dt class="text-xs text-slate-500 dark:text-slate-400">Total</dt><dd class="text-lg font-semibold"><%= s.totalMessages %></dd></div>
+        <div><dt class="text-xs text-slate-500 dark:text-slate-400">People</dt><dd class="text-lg font-semibold"><%= s.humanMessages %></dd></div>
+        <div><dt class="text-xs text-slate-500 dark:text-slate-400">Bot</dt><dd class="text-lg font-semibold"><%= s.botMessages %></dd></div>
+        <div><dt class="text-xs text-slate-500 dark:text-slate-400">Active</dt><dd class="text-lg font-semibold"><%= s.activeContributors %></dd></div>
+      </dl>
+
+      <% const max = s.daily.reduce(function (m, d) { return Math.max(m, d.messages); }, 1); %>
+      <div class="mt-4 flex h-20 items-end gap-1">
+        <% s.daily.forEach(function (d) { %>
+          <div class="flex-1 rounded-t bg-emerald-500/80" style="height: <%= Math.max(4, Math.round((d.messages / max) * 100)) %>%" title="<%= d.date %>: <%= d.messages %>"></div>
+        <% }); %>
+        <% if (!s.daily.length) { %><span class="text-xs text-slate-400">No activity recorded.</span><% } %>
+      </div>
+
+      <% if (s.topContributors.length) { %>
+        <ul class="mt-4 space-y-1 text-sm">
+          <% s.topContributors.slice(0, 5).forEach(function (c) { %>
+            <li class="flex justify-between"><span class="truncate"><%= c.authorName %></span><span class="text-slate-400"><%= c.messages %></span></li>
+          <% }); %>
+        </ul>
+      <% } %>
+
+      <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        Last human message: <%= s.lastMessageAt ? formatLocal(s.lastMessageAt) : '—' %>
+        <% if (s.idleHours !== null) { %> · idle <%= s.idleHours.toFixed(1) %>h<% } %>
+      </p>
+    </section>
+  <% }); %>
+</div>
+
+<%- include('partials/foot') %>

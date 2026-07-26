@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+logs
+data
+.git
+.env
+*.md
+!README.md
+.wwebjs_auth
+.wwebjs_cache

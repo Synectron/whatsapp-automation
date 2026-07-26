@@ -1,0 +1,50 @@
+services:
+  app:
+    build: .
+    image: whatsapp-group-assistant:latest
+    container_name: whatsapp-group-assistant
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Override for the postgres profile:
+      # DB_CLIENT: postgres
+      # DATABASE_URL: postgres://wga:wga@db:5432/wga
+      WHATSAPP_EXECUTABLE_PATH: /usr/bin/chromium
+    ports:
+      - '${PORT:-4000}:${PORT:-4000}'
+    volumes:
+      - app-data:/app/data
+      - app-logs:/app/logs
+      - app-backups:/app/backups
+    # Chromium needs a larger /dev/shm
+    shm_size: '1gb'
+    healthcheck:
+      test:
+        ['CMD', 'node', '-e', "fetch('http://127.0.0.1:'+(process.env.PORT||4000)+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:16-alpine
+    container_name: whatsapp-group-assistant-db
+    profiles: ['postgres']
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wga
+      POSTGRES_PASSWORD: wga
+      POSTGRES_DB: wga
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U wga']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  app-data:
+  app-logs:
+  app-backups:
+  pg-data:

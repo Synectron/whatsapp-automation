@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # whatsapp-web.js pulls Puppeteer; CI never launches a browser.
+  PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+jobs:
+  quality:
+    name: Lint · typecheck · test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test:coverage
+        env:
+          NODE_ENV: test
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  build:
+    name: Build · Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          test -f dist/server.js
+          test -d dist/views
+          test -d dist/public
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: whatsapp-group-assistant:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke-test migrations in the image
+        run: |
+          docker run --rm \
+            -e NODE_ENV=production \
+            -e SESSION_SECRET=ci-only-secret-that-is-long-enough-1234567 \
+            -e DASHBOARD_PASSWORD=ci-only-password \
+            -e DATABASE_URL=/tmp/ci.sqlite \
+            whatsapp-group-assistant:ci \
+            node -e "
+              const { runMigrations, runSeeds, closeDb } = require('./dist/database');
+              runMigrations().then(runSeeds).then(closeDb)
+                .then(() => console.log('migrations + seeds OK'))
+                .catch((e) => { console.error(e); process.exit(1); });
+            "

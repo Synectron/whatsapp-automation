@@ -119,6 +119,14 @@ export class AiService {
       });
       const reply = raw.trim();
       if (!reply || /^skip$/i.test(reply)) {
+        // The model declined, but someone explicitly asked for something —
+        // acknowledge instead of leaving them on read.
+        const needsAck: Intent[] = ['blocked', 'waiting', 'help_request', 'question'];
+        if (needsAck.includes(intent)) {
+          const generic = `Thanks for reaching out 🙏 We've noted this and will get back to you shortly.`;
+          this.noteReply(input.groupId);
+          return { reply: generic, intent, source: 'rules', reason: 'model_declined_ack' };
+        }
         return { reply: null, intent, source: 'none', reason: 'model_declined' };
       }
       this.noteReply(input.groupId);

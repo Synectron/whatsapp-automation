@@ -18,6 +18,8 @@ export const sendMessageSchema = z
   .object({
     groupId: z.coerce.number().int().positive().optional(),
     whatsappId: z.string().regex(/@(g|c)\.us$/, 'Must be a WhatsApp chat id').optional(),
+    /** Individual recipient, e.g. "+91 98765 43210" or "9876543210". */
+    phone: z.string().min(5).max(25).optional(),
     message: z.string().min(1, 'Message body is required').max(4096),
     mentionAll: booleanish.optional().default(false),
     mentions: z.array(z.string()).optional(),
@@ -25,8 +27,8 @@ export const sendMessageSchema = z
     force: booleanish.optional().default(false),
     dedupeKey: z.string().max(200).optional(),
   })
-  .refine((v) => v.groupId !== undefined || v.whatsappId !== undefined, {
-    message: 'Provide either groupId or whatsappId.',
+  .refine((v) => v.groupId !== undefined || v.whatsappId !== undefined || v.phone !== undefined, {
+    message: 'Provide a groupId, whatsappId or phone number.',
     path: ['groupId'],
   });
 
@@ -80,6 +82,9 @@ export const meetingReminderSchema = z.object({
   minutesBefore: z.coerce.number().int().min(1).max(1440).optional().default(30),
   message: z.string().max(4096).optional(),
 });
+
+/** Validates a typed number without sending anything. */
+export const validateNumberSchema = z.object({ phone: z.string().min(5).max(25) });
 
 export const holidaySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),

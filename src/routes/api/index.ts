@@ -16,6 +16,7 @@ import { requireApiAuth } from '../../middleware/auth';
 import { apiLimiter, sendLimiter } from '../../middleware/rateLimit';
 import { describeCron, validateCron } from '../../utils/cron';
 import { NotFoundError, ValidationError } from '../../utils/errors';
+import { tryParsePhoneNumber } from '../../utils/phone';
 import { TemplateRepository } from '../../repositories/templateRepository';
 import { HolidayRepository } from '../../repositories/holidayRepository';
 import { OutboxRepository } from '../../repositories/outboxRepository';
@@ -29,6 +30,7 @@ import {
   meetingReminderSchema,
   sendMessageSchema,
   settingsSchema,
+  validateNumberSchema,
   templateSchema,
   updateScheduleSchema,
 } from './schemas';
@@ -168,6 +170,25 @@ export function buildApiRouter(container: Container): Router {
     asyncHandler(async (req, res) => {
       const { message, mentionAll } = req.body as z.infer<typeof broadcastSchema>;
       res.status(201).json(ok(await container.messages.broadcast(message, { mentionAll, source: 'broadcast' })));
+    }),
+  );
+
+  /** Parses a typed number and checks whether it is on WhatsApp. */
+  router.post(
+    '/message/validate-number',
+    validate(validateNumberSchema),
+    asyncHandler(async (req, res) => {
+      const { phone } = req.body as z.infer<typeof validateNumberSchema>;
+      const parsed = tryParsePhoneNumber(phone);
+      if (!parsed) {
+        res.json(ok({ valid: false, reason: 'Could not read that as a phone number.' }));
+        return;
+      }
+      let registered: boolean | null = null;
+      if (container.gateway.isReady) {
+        registered = (await container.gateway.resolveNumber(parsed.digits)).registered;
+      }
+      res.json(ok({ valid: true, display: parsed.display, chatId: parsed.chatId, registered }));
     }),
   );
 

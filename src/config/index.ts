@@ -70,6 +70,7 @@ export interface AppConfig {
     maxRepliesPerHour: number;
     minMessageLength: number;
   };
+  contacts: { defaultCountryCode: string };
   logging: {
     level: Env['LOG_LEVEL'];
     dir: string;
@@ -156,6 +157,7 @@ export function buildConfig(env: Env = loadEnv()): AppConfig {
       maxRepliesPerHour: env.AI_MAX_REPLIES_PER_HOUR,
       minMessageLength: env.AI_MIN_MESSAGE_LENGTH,
     },
+    contacts: { defaultCountryCode: env.DEFAULT_COUNTRY_CODE.replace(/\D/g, '') },
     logging: {
       level: env.LOG_LEVEL,
       dir: resolvePath(env.LOG_DIR),

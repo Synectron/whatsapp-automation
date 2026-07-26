@@ -14,7 +14,7 @@ import { eventBus } from '../utils/events';
 import { backoffDelay, sleep } from '../utils/async';
 import { ServiceUnavailableError } from '../utils/errors';
 import type { ConnectionStatus } from '../models/types';
-import type { RemoteGroup, SendOptions, WhatsAppGateway } from './gateway';
+import type { RemoteGroup, ResolvedNumber, SendOptions, WhatsAppGateway } from './gateway';
 
 const log = childLogger('whatsapp');
 
@@ -249,6 +249,19 @@ export class WhatsAppClient implements WhatsAppGateway {
       ...(options.mentions?.length ? { mentions: options.mentions } : {}),
     } as never);
     return sent?.id?._serialized ?? '';
+  }
+
+  public async resolveNumber(digits: string): Promise<ResolvedNumber> {
+    const fallback = `${digits}@c.us`;
+    if (config.whatsapp.dryRun) return { chatId: fallback, registered: true };
+    if (!this.client || !this.isReady) {
+      throw new ServiceUnavailableError(`WhatsApp client is not ready (status: ${this.currentStatus})`);
+    }
+    // getNumberId returns null when the number has no WhatsApp account.
+    const resolved = await this.client.getNumberId(digits);
+    return resolved
+      ? { chatId: resolved._serialized, registered: true }
+      : { chatId: fallback, registered: false };
   }
 
   public async fetchGroups(): Promise<RemoteGroup[]> {

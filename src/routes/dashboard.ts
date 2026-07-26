@@ -210,6 +210,8 @@ export function buildDashboardRouter(container: Container): Router {
         groups: await container.groups.list(true),
         templates: await templates.list(),
         queue: await outbox.list(undefined, 25),
+        defaultCountryCode: config.contacts.defaultCountryCode,
+        connected: container.gateway.isReady,
         formatLocal,
       });
     }),
@@ -228,11 +230,13 @@ export function buildDashboardRouter(container: Container): Router {
           res.redirect(flash('/send', `Broadcast queued for ${results.filter((r) => r.queued).length} group(s).`));
           return;
         }
+        // Individual recipient (a phone number) or one of the stored groups.
+        const toNumber = body.recipientType === 'number';
         const record = await container.messages.send({
-          groupId: Number(body.groupId),
+          ...(toNumber ? { phone: body.phone } : { groupId: Number(body.groupId) }),
           message: body.message,
-          mentionAll: body.mentionAll === 'on',
-          source: 'dashboard',
+          mentionAll: !toNumber && body.mentionAll === 'on',
+          source: toNumber ? 'dashboard:direct' : 'dashboard',
           force: true,
         });
         res.redirect(flash('/send', record ? `Message queued (#${record.id}).` : 'Message suppressed.'));

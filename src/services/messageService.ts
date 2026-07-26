@@ -7,18 +7,25 @@
  */
 import { config } from '../config';
 import { getLocale, getTimezone } from '../config/runtime';
+import { parsePhoneNumber, PhoneNumberError } from '../utils/phone';
 import { renderTemplate, type TemplateVars } from '../utils/templating';
 import { ValidationError } from '../utils/errors';
 import { audit, AuditEvent } from './auditService';
 import { settingsService } from './settingsService';
 import type { GroupService } from './groupService';
 import type { MessageQueue } from '../whatsapp/messageQueue';
+import type { WhatsAppGateway } from '../whatsapp/gateway';
 import type { GroupRecord, OutboxRecord } from '../models/types';
 
 export interface SendRequest {
   /** Numeric group id, or the raw WhatsApp chat id (…@g.us). */
   groupId?: number;
   whatsappId?: string;
+  /**
+   * An individual recipient's phone number in any readable format. Resolved
+   * against WhatsApp before the message is queued.
+   */
+  phone?: string;
   message: string;
   /** Template placeholders such as {{group}} / {{date}}. */
   vars?: TemplateVars;
@@ -38,7 +45,30 @@ export class MessageService {
   constructor(
     private readonly queue: MessageQueue,
     private readonly groups: GroupService,
+    private readonly gateway?: WhatsAppGateway,
   ) {}
+
+  /**
+   * Turns a typed phone number into a chat id, confirming the number actually
+   * has a WhatsApp account first.
+   */
+  private async resolvePhone(phone: string): Promise<string> {
+    let parsed;
+    try {
+      parsed = parsePhoneNumber(phone);
+    } catch (err) {
+      if (err instanceof PhoneNumberError) throw new ValidationError(err.message, { field: 'phone' });
+      throw err;
+    }
+
+    if (!this.gateway) return parsed.chatId;
+
+    const resolved = await this.gateway.resolveNumber(parsed.digits);
+    if (!resolved.registered) {
+      throw new ValidationError(`${parsed.display} does not have a WhatsApp account.`, { field: 'phone' });
+    }
+    return resolved.chatId;
+  }
 
   /** Resolves a request to a stored group, when one exists. */
   private async resolveGroup(request: SendRequest): Promise<GroupRecord | null> {
@@ -56,8 +86,9 @@ export class MessageService {
     if (!request.message?.trim()) throw new ValidationError('Message body cannot be empty.');
 
     const group = await this.resolveGroup(request);
-    const chatId = group?.whatsappId ?? request.whatsappId;
-    if (!chatId) throw new ValidationError('Provide either groupId or whatsappId.');
+    const chatId =
+      group?.whatsappId ?? request.whatsappId ?? (request.phone ? await this.resolvePhone(request.phone) : undefined);
+    if (!chatId) throw new ValidationError('Provide a groupId, whatsappId or phone number.');
     if (!chatId.endsWith('@g.us') && !chatId.endsWith('@c.us')) {
       throw new ValidationError('whatsappId must be a WhatsApp chat id ending in @g.us or @c.us.');
     }
@@ -65,6 +96,8 @@ export class MessageService {
       await audit.warn(AuditEvent.ScheduleSkipped, { reason: 'group_disabled', group: group.name }, group.id);
       return null;
     }
+
+    const isDirectMessage = chatId.endsWith('@c.us');
 
     const settings = await settingsService.get();
     const vars: TemplateVars = {
@@ -96,7 +129,12 @@ export class MessageService {
     if (record) {
       await audit.info(
         AuditEvent.MessageQueued,
-        { outboxId: record.id, group: group?.name ?? chatId, source: record.source },
+        {
+          outboxId: record.id,
+          recipient: group?.name ?? chatId,
+          type: isDirectMessage ? 'direct' : 'group',
+          source: record.source,
+        },
         group?.id ?? null,
       );
     }

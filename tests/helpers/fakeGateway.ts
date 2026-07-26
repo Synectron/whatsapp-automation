@@ -1,6 +1,6 @@
 /** In-memory WhatsApp gateway double. */
 import type { ConnectionStatus } from '../../src/models/types';
-import type { RemoteGroup, SendOptions, WhatsAppGateway } from '../../src/whatsapp/gateway';
+import type { RemoteGroup, ResolvedNumber, SendOptions, WhatsAppGateway } from '../../src/whatsapp/gateway';
 
 export class FakeGateway implements WhatsAppGateway {
   public status: ConnectionStatus = 'ready';
@@ -39,6 +39,16 @@ export class FakeGateway implements WhatsAppGateway {
 
   async fetchGroups(): Promise<RemoteGroup[]> {
     return this.groups;
+  }
+
+  /** Numbers listed here are treated as not having a WhatsApp account. */
+  public unregisteredNumbers: string[] = [];
+
+  async resolveNumber(digits: string): Promise<ResolvedNumber> {
+    return {
+      chatId: `${digits}@c.us`,
+      registered: !this.unregisteredNumbers.includes(digits),
+    };
   }
 
   getQrDataUrl(): string | null {

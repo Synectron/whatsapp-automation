@@ -7,13 +7,33 @@
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
     <form method="post" action="/send" class="space-y-4">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <label class="block text-sm">
+      <div class="flex gap-2 rounded-lg bg-slate-100 p-1 text-sm dark:bg-slate-800">
+        <label class="flex-1">
+          <input type="radio" name="recipientType" value="group" class="peer sr-only" checked />
+          <span class="block cursor-pointer rounded-md px-3 py-1.5 text-center peer-checked:bg-white peer-checked:font-semibold peer-checked:shadow-sm dark:peer-checked:bg-slate-900">Group</span>
+        </label>
+        <label class="flex-1">
+          <input type="radio" name="recipientType" value="number" class="peer sr-only" />
+          <span class="block cursor-pointer rounded-md px-3 py-1.5 text-center peer-checked:bg-white peer-checked:font-semibold peer-checked:shadow-sm dark:peer-checked:bg-slate-900">Phone number</span>
+        </label>
+      </div>
+
+      <label class="block text-sm" data-recipient="group">
         <span class="font-medium">Group</span>
         <select name="groupId" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
           <% groups.forEach(function (g) { %>
             <option value="<%= g.id %>"><%= g.name %></option>
           <% }); %>
         </select>
+      </label>
+      <label class="hidden text-sm" data-recipient="number">
+        <span class="font-medium">Phone number</span>
+        <input name="phone" id="phone-input" autocomplete="tel"
+          placeholder="<%= locals.defaultCountryCode ? '9876543210' : '+91 9876543210' %>"
+          class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
+        <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400" id="phone-feedback">
+          <% if (locals.defaultCountryCode) { %>Numbers without a country code are treated as +<%= locals.defaultCountryCode %>.<% } else { %>Include the country code.<% } %>
+        </span>
       </label>
       <label class="block text-sm">
         <span class="font-medium">Message</span>
@@ -29,7 +49,7 @@
           <% }); %>
         </div>
       </div>
-      <div class="flex flex-wrap gap-4 text-sm">
+      <div class="flex flex-wrap gap-4 text-sm" data-recipient="group">
         <label class="flex items-center gap-2"><input type="checkbox" name="mentionAll" class="rounded" /> Mention everyone</label>
         <label class="flex items-center gap-2"><input type="checkbox" name="broadcast" class="rounded" /> Broadcast to all enabled groups</label>
       </div>
@@ -71,5 +91,63 @@
     </div>
   </section>
 </div>
+
+<script>
+  (function () {
+    var form = document.querySelector('form[action="/send"]');
+    if (!form) return;
+
+    var phoneInput = document.getElementById('phone-input');
+    var feedback = document.getElementById('phone-feedback');
+    var csrf = form.querySelector('input[name="_csrf"]');
+    var baseHint = feedback ? feedback.textContent : '';
+
+    function show(type) {
+      form.querySelectorAll('[data-recipient]').forEach(function (el) {
+        var match = el.getAttribute('data-recipient') === type;
+        el.classList.toggle('hidden', !match);
+        // Disabled fields are omitted from the submitted form.
+        el.querySelectorAll('input, select, textarea').forEach(function (f) { f.disabled = !match; });
+      });
+    }
+
+    form.querySelectorAll('input[name="recipientType"]').forEach(function (radio) {
+      radio.addEventListener('change', function () { show(radio.value); });
+    });
+    show('group');
+
+    if (!phoneInput || !feedback || !csrf) return;
+    var timer;
+    phoneInput.addEventListener('input', function () {
+      clearTimeout(timer);
+      if (!phoneInput.value.trim()) {
+        feedback.textContent = baseHint;
+        feedback.className = 'mt-1 block text-xs text-slate-500 dark:text-slate-400';
+        return;
+      }
+      timer = setTimeout(function () {
+        fetch('/api/message/validate-number', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf.value },
+          body: JSON.stringify({ phone: phoneInput.value })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (payload) {
+            var d = (payload && payload.data) || {};
+            var good = d.valid && d.registered !== false;
+            feedback.textContent = !d.valid
+              ? (d.reason || 'Invalid number')
+              : d.registered === false
+                ? d.display + ' is not on WhatsApp'
+                : d.registered === null
+                  ? d.display + ' (connect WhatsApp to verify)'
+                  : d.display + ' \u2713 on WhatsApp';
+            feedback.className = 'mt-1 block text-xs ' + (good ? 'text-emerald-600' : 'text-red-600');
+          })
+          .catch(function () {});
+      }, 400);
+    });
+  })();
+</script>
 
 <%- include('partials/foot') %>

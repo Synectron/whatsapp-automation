@@ -20,6 +20,12 @@ export interface SendOptions {
   mentions?: string[];
 }
 
+export interface ResolvedNumber {
+  /** Canonical chat id reported by WhatsApp (may differ from the input). */
+  chatId: string;
+  registered: boolean;
+}
+
 export interface WhatsAppGateway {
   readonly status: ConnectionStatus;
   readonly isReady: boolean;
@@ -29,6 +35,12 @@ export interface WhatsAppGateway {
   restart(): Promise<void>;
   sendMessage(chatId: string, body: string, options?: SendOptions): Promise<string>;
   fetchGroups(): Promise<RemoteGroup[]>;
+  /**
+   * Checks whether a number has a WhatsApp account and returns its canonical
+   * chat id. Sending to unregistered numbers is both useless and a signal that
+   * contributes to account restrictions, so callers check first.
+   */
+  resolveNumber(digits: string): Promise<ResolvedNumber>;
   getQrDataUrl(): string | null;
   getInfo(): { pushname?: string; wid?: string; connectedSince?: string; reconnectAttempts: number; lastQrAt?: string };
 }

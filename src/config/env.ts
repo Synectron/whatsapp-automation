@@ -84,6 +84,9 @@ export const envSchema = z.object({
   SESSION_SECURE_COOKIE: bool(false),
   API_KEY: optStr(),
 
+  // Applied when an individual recipient is typed without a country code.
+  DEFAULT_COUNTRY_CODE: str(''),
+
   WHATSAPP_SESSION_PATH: str('./data/wwebjs_auth'),
   WHATSAPP_CLIENT_ID: str('default'),
   WHATSAPP_HEADLESS: bool(true),

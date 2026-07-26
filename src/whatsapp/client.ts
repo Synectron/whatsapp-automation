@@ -249,25 +249,58 @@ export class WhatsAppClient implements WhatsAppGateway {
     if (!this.client || !this.isReady) {
       throw new ServiceUnavailableError(`WhatsApp client is not ready (status: ${this.currentStatus})`);
     }
-    const chats = await this.client.getChats();
-    return chats
-      .filter((chat) => chat.isGroup)
-      .map((chat) => {
-        const group = chat as unknown as {
-          id: { _serialized: string };
-          name: string;
-          description?: string;
-          participants?: Array<{ id: { _serialized: string }; isAdmin?: boolean }>;
+    // getChats() is broken on current WhatsApp Web builds (wwebjs #5733):
+    // full-chat serialization throws inside the page. Read the group models
+    // straight from the injected Store instead and return plain objects.
+    const page = (this.client as unknown as { pupPage?: import('puppeteer').Page }).pupPage;
+    if (!page) {
+      throw new ServiceUnavailableError('WhatsApp browser page is not available');
+    }
+    const groups = (await page.evaluate(() => {
+      const store = (globalThis as unknown as {
+        Store: {
+          Chat: {
+            getModelsArray: () => Array<{
+              isGroup?: boolean;
+              id: { _serialized: string; server?: string };
+              formattedTitle?: string;
+              name?: string;
+              groupMetadata?: {
+                desc?: string;
+                participants?: {
+                  getModelsArray: () => Array<{
+                    id: { _serialized: string };
+                    isAdmin?: boolean;
+                    isSuperAdmin?: boolean;
+                  }>;
+                };
+              };
+            }>;
+          };
         };
-        return {
-          whatsappId: group.id._serialized,
-          name: group.name,
-          description: group.description ?? null,
-          participantCount: group.participants?.length ?? null,
-          participants:
-            group.participants?.map((p) => ({ id: p.id._serialized, isAdmin: Boolean(p.isAdmin) })) ?? [],
-        };
-      });
+      }).Store;
+      return store.Chat.getModelsArray()
+        .filter((chat) => chat.isGroup || chat.id.server === 'g.us')
+        .map((chat) => ({
+          whatsappId: chat.id._serialized,
+          name: chat.formattedTitle ?? chat.name ?? chat.id._serialized,
+          description: chat.groupMetadata?.desc ?? null,
+          participants: (chat.groupMetadata?.participants?.getModelsArray() ?? []).map((p) => ({
+            id: p.id._serialized,
+            isAdmin: Boolean(p.isAdmin) || Boolean(p.isSuperAdmin),
+          })),
+        }));
+    })) as Array<{
+      whatsappId: string;
+      name: string;
+      description: string | null;
+      participants: Array<{ id: string; isAdmin: boolean }>;
+    }>;
+
+    return groups.map((group) => ({
+      ...group,
+      participantCount: group.participants.length || null,
+    }));
   }
 }
 

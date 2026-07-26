@@ -28,7 +28,7 @@ configuration dashboard — all driven by configuration rather than hardcoded va
 - [Troubleshooting](#troubleshooting)
 
 ---
-
+ 
 ## Features
 
 **Connection**
@@ -401,5 +401,6 @@ CRUD) and the dashboard (login, CSRF, page rendering).
 ## License
 
 MIT
-#   w h a t s a p p - a u t o m a t i o n  
+#   w h a t s a p p - a u t o m a t i o n 
+ 
  

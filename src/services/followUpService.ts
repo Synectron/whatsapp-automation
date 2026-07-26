@@ -60,7 +60,7 @@ export class FollowUpService {
 
     await this.messages.send({
       groupId: group.id,
-      message: result.reply,
+      message: `${result.reply}\n\n— Softcoe Bot 🤖`,
       source: `ai:${result.source}`,
       dedupeKey: `followup:${message.messageId}`,
     });

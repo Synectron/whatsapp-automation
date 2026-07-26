@@ -6,9 +6,12 @@ data/
 .wwebjs_auth/
 .wwebjs_cache/
 sessions/
-.env
+# .env is dotenvx-encrypted and safe to commit; the decryption key in
+# .env.keys must never be committed.
 .env.*
 !.env.example
+.env.keys
+.env.backup
 *.sqlite
 *.sqlite3
 *.log

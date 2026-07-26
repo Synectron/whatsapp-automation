@@ -62,7 +62,7 @@ export class FollowUpService {
       groupId: group.id,
       message: `${result.reply}\n\n— Softcoe Bot 🤖`,
       source: `ai:${result.source}`,
-      dedupeKey: `followup:${message.messageId}`,
+      dedupeKey: `followup:${message.messageId || `${message.chatId}:${message.timestamp}`}`,
     });
 
     await audit.info(

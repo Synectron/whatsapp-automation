@@ -133,7 +133,10 @@ export class WhatsAppClient implements WhatsAppGateway {
             authorName = '';
           }
           eventBus.emit('wa:message', {
-            messageId: message.id?._serialized ?? '',
+            messageId:
+              message.id?._serialized ??
+              (message.id as unknown as { id?: string } | undefined)?.id ??
+              '',
             chatId,
             chatName: '',
             authorId: message.author ?? message.from,

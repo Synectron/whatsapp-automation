@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       chromium \
       fonts-liberation fonts-noto-color-emoji \
       ca-certificates dumb-init tini \
+    && if [ -x /usr/bin/chromium-browser ] && [ ! -x /usr/bin/chromium ]; then ln -s /usr/bin/chromium-browser /usr/bin/chromium; fi \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production \

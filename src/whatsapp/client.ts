@@ -5,6 +5,7 @@
  * state machine, automatic reconnection with exponential backoff, and a narrow
  * send/fetch surface exposed through {@link WhatsAppGateway}.
  */
+import fs from 'node:fs';
 import QRCode from 'qrcode';
 import { Client, LocalAuth, type Message } from 'whatsapp-web.js';
 import { config } from '../config';
@@ -17,6 +18,18 @@ import type { ConnectionStatus } from '../models/types';
 import type { RemoteGroup, ResolvedNumber, SendOptions, WhatsAppGateway } from './gateway';
 
 const log = childLogger('whatsapp');
+
+function findBrowserExecutable(): string | undefined {
+  const candidates = [
+    config.whatsapp.executablePath,
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome-stable',
+    '/opt/google/chrome/chrome',
+  ];
+
+  return candidates.find((candidate) => candidate !== undefined && fs.existsSync(candidate));
+}
 
 /** whatsapp-web.js marks group chats with the `@g.us` suffix. */
 export const isGroupId = (id: string): boolean => id.endsWith('@g.us');
@@ -62,6 +75,7 @@ export class WhatsAppClient implements WhatsAppGateway {
 
   private buildClient(): Client {
     ensureDir(config.whatsapp.sessionPath);
+    const executablePath = findBrowserExecutable();
     return new Client({
       authStrategy: new LocalAuth({
         clientId: config.whatsapp.clientId,
@@ -70,7 +84,7 @@ export class WhatsAppClient implements WhatsAppGateway {
       puppeteer: {
         headless: config.whatsapp.headless,
         args: config.whatsapp.puppeteerArgs,
-        ...(config.whatsapp.executablePath ? { executablePath: config.whatsapp.executablePath } : {}),
+        ...(executablePath ? { executablePath } : {}),
       },
       // Pin the web build so a WhatsApp Web update cannot silently break auth.
       takeoverOnConflict: true,

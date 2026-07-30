@@ -44,7 +44,7 @@ export function parsePhoneNumber(
 
   // Already a chat id? Accept it unchanged — checked before the letters guard,
   // since "@c.us" is itself letters.
-  const chatIdMatch = /^(\d{7,15})@c\.us$/.exec(raw);
+  const chatIdMatch = /^(\d{7,15})@(?:c\.us|lid)$/.exec(raw);
   if (chatIdMatch) return build(chatIdMatch[1]);
 
   if (/[a-z]/i.test(raw)) throw new PhoneNumberError('Phone number must not contain letters.');
@@ -97,8 +97,19 @@ export function tryParsePhoneNumber(input: string, defaultCountryCode?: string):
   }
 }
 
-/** True for a WhatsApp individual chat id. */
-export const isIndividualChatId = (id: string): boolean => /^\d+@c\.us$/.test(id);
+/**
+ * WhatsApp addressing.
+ *
+ * `@c.us` is the classic phone-number address and `@lid` is the newer
+ * Linked-ID form WhatsApp is migrating individual contacts to; both identify a
+ * single person. `@g.us` is a group. Treating `@lid` as invalid — as an
+ * allow-list of `@c.us` alone does — breaks sends to any contact WhatsApp has
+ * already migrated.
+ */
+export const isIndividualChatId = (id: string): boolean => /^\d+@(c\.us|lid)$/.test(id);
 
 /** True for a WhatsApp group chat id. */
 export const isGroupChatId = (id: string): boolean => id.endsWith('@g.us');
+
+/** Loose shape check: digits, an @, and a non-empty server part. */
+export const isChatId = (id: string): boolean => /^[\w-]+@[\w.-]+$/.test(id);

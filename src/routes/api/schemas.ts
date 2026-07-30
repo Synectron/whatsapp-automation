@@ -17,7 +17,11 @@ export const idParam = z.object({ id: z.coerce.number().int().positive() });
 export const sendMessageSchema = z
   .object({
     groupId: z.coerce.number().int().positive().optional(),
-    whatsappId: z.string().regex(/@(g|c)\.us$/, 'Must be a WhatsApp chat id').optional(),
+    // Shape, not allow-list — see the note in MessageService about @lid.
+    whatsappId: z
+      .string()
+      .regex(/^[\w-]+@[\w.-]+$/, 'Must be a WhatsApp chat id, e.g. 12345@c.us')
+      .optional(),
     /** Individual recipient, e.g. "+91 98765 43210" or "9876543210". */
     phone: z.string().min(5).max(25).optional(),
     message: z.string().min(1, 'Message body is required').max(4096),

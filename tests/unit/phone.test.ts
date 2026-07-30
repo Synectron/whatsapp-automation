@@ -1,4 +1,4 @@
-import { parsePhoneNumber, tryParsePhoneNumber, isGroupChatId, isIndividualChatId, PhoneNumberError } from '../../src/utils/phone';
+import { parsePhoneNumber, tryParsePhoneNumber, isChatId, isGroupChatId, isIndividualChatId, PhoneNumberError } from '../../src/utils/phone';
 
 describe('phone number parsing', () => {
   describe('with an explicit country code', () => {
@@ -36,6 +36,12 @@ describe('phone number parsing', () => {
     expect(parsePhoneNumber('919876543210@c.us', '91').chatId).toBe('919876543210@c.us');
   });
 
+  // WhatsApp is migrating individual contacts to Linked-ID addressing, and
+  // getNumberId already returns this form for migrated contacts.
+  it('accepts a LID chat id', () => {
+    expect(parsePhoneNumber('919876543210@lid', '91').digits).toBe('919876543210');
+  });
+
   it('builds the chat id and display form', () => {
     const parsed = parsePhoneNumber('+91 98765 43210', '91');
     expect(parsed.chatId).toBe('919876543210@c.us');
@@ -69,9 +75,18 @@ describe('phone number parsing', () => {
   describe('chat id predicates', () => {
     it('distinguishes individuals from groups', () => {
       expect(isIndividualChatId('919876543210@c.us')).toBe(true);
+      expect(isIndividualChatId('919876543210@lid')).toBe(true);
       expect(isIndividualChatId('120363000000@g.us')).toBe(false);
       expect(isGroupChatId('120363000000@g.us')).toBe(true);
       expect(isGroupChatId('919876543210@c.us')).toBe(false);
+    });
+
+    it('accepts any plausible chat id shape, rejects rubbish', () => {
+      expect(isChatId('919876543210@c.us')).toBe(true);
+      expect(isChatId('919876543210@lid')).toBe(true);
+      expect(isChatId('120363000000@g.us')).toBe(true);
+      expect(isChatId('919876543210')).toBe(false);
+      expect(isChatId('not a chat id')).toBe(false);
     });
   });
 });

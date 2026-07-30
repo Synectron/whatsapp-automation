@@ -7,7 +7,7 @@
  */
 import { config } from '../config';
 import { getLocale, getTimezone } from '../config/runtime';
-import { parsePhoneNumber, PhoneNumberError } from '../utils/phone';
+import { isChatId, isIndividualChatId, parsePhoneNumber, PhoneNumberError } from '../utils/phone';
 import { renderTemplate, type TemplateVars } from '../utils/templating';
 import { ValidationError } from '../utils/errors';
 import { audit, AuditEvent } from './auditService';
@@ -89,15 +89,22 @@ export class MessageService {
     const chatId =
       group?.whatsappId ?? request.whatsappId ?? (request.phone ? await this.resolvePhone(request.phone) : undefined);
     if (!chatId) throw new ValidationError('Provide a groupId, whatsappId or phone number.');
-    if (!chatId.endsWith('@g.us') && !chatId.endsWith('@c.us')) {
-      throw new ValidationError('whatsappId must be a WhatsApp chat id ending in @g.us or @c.us.');
+    // Shape check only, deliberately not an allow-list of suffixes. WhatsApp is
+    // migrating individual contacts from `<number>@c.us` to LID addressing
+    // (`<id>@lid`), and getNumberId already returns the new form — an allow-list
+    // rejects valid ids the moment the vendor adds one. Let WhatsApp be the
+    // authority on which ids it accepts; we only guard against obvious rubbish.
+    if (!isChatId(chatId)) {
+      throw new ValidationError(
+        `"${chatId}" is not a WhatsApp chat id. Expected something like 12345@c.us, 12345@lid or 12345@g.us.`,
+      );
     }
     if (group && !group.enabled && !request.force) {
       await audit.warn(AuditEvent.ScheduleSkipped, { reason: 'group_disabled', group: group.name }, group.id);
       return null;
     }
 
-    const isDirectMessage = chatId.endsWith('@c.us');
+    const isDirectMessage = isIndividualChatId(chatId);
 
     const settings = await settingsService.get();
     const vars: TemplateVars = {

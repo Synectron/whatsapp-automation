@@ -7,6 +7,7 @@
 import { Router } from 'express';
 import { config } from '../config';
 import { getTimezone } from '../config/runtime';
+import { audit, AuditEvent } from '../services/auditService';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requireDashboardAuth } from '../middleware/auth';
 import { describeCron } from '../utils/cron';
@@ -241,6 +242,15 @@ export function buildDashboardRouter(container: Container): Router {
         });
         res.redirect(flash('/send', record ? `Message queued (#${record.id}).` : 'Message suppressed.'));
       } catch (err) {
+        // Flashing alone left failures invisible in the logs, which made this
+        // exact class of bug undiagnosable after the fact.
+        await audit.error(AuditEvent.MessageFailed, {
+          source: 'dashboard',
+          recipientType: body.recipientType ?? 'group',
+          phone: body.phone ?? null,
+          groupId: body.groupId ?? null,
+          error: (err as Error).message,
+        });
         res.redirect(flash('/send', (err as Error).message, 'error'));
       }
     }),
